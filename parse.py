@@ -9,7 +9,7 @@ import re
 
 
 def parse_filedat(filename):
-    '''Read the file and return all data in a list of dictionary.'''
+    '''Read the file and return all data in a list of dictionary'''
 
     re_section=re.compile("(\S+)\s*{")
     re_content=re.compile("(\S+)\s*=\s*(\S+)")
