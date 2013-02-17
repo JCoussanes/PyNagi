@@ -8,7 +8,7 @@
 import re
 
 
-def parse_filedat(filename):
+def parse_dat_file(filename):
     '''Read the file and return all data in a list of dictionary'''
 
     re_section=re.compile("(\S+)\s*{")
@@ -32,4 +32,4 @@ def parse_filedat(filename):
                 if content:
                     data_list[i]["content"][content.group(1)]=content.group(2)
 
-    return l_fichier
+    return data_list
