@@ -5,7 +5,7 @@ import irclib
 import ircbot
 import re
 
-class BotModeration(ircbot.SingleServerIRCBot):
+class Pynagi(ircbot.SingleServerIRCBot):
 
     def __init__(self,server,port,channel,nickname):
         """Constructeur qui pourrait prendre des paramètres dans un "vrai" programme."""
@@ -15,7 +15,7 @@ class BotModeration(ircbot.SingleServerIRCBot):
         self.server = server
         self.nickname = nickname
         self.port = port
-        self.re_to_me=re.compile(nickname+".(\S+)")
+        self.re_to_me=re.compile(nickname+".*(-\S+)")
 
     def on_welcome(self, serv, ev):
         """Méthode appelée une fois connecté et identifié. Notez qu'on ne peut rejoindre les canaux auparavant."""
@@ -42,12 +42,12 @@ class BotModeration(ircbot.SingleServerIRCBot):
             elif cmd=="-show-critical":
                 serv.privmsg(self.chan,"OK, je show critical.")
             elif cmd=="-help":
-                serv.privmsg(self.chan,"""\t\t\t-resend: Resend the last known problems""")
-                serv.privmsg(self.chan,"""\t\t\t-stat: Returns the number of criticals/warnings/etc""")
-                serv.privmsg(self.chan,"""\t\t\t-reload: Completely forced reload the nagios status""")
-                serv.privmsg(self.chan,"""\t\t\t-check: Check if nagios is still running""")
-                serv.privmsg(self.chan,"""\t\t\t-show-critical: Change the type of errors shown to critical only""")
-                serv.privmsg(self.chan,"""\t\t\t-show-all: Change the type of errors shown to all""")
+                serv.privmsg(self.chan,"""        -resend: Resend the last known problems""")
+                serv.privmsg(self.chan,"""        -stat: Returns the number of criticals/warnings/etc""")
+                serv.privmsg(self.chan,"""        -reload: Completely forced reload the nagios status""")
+                serv.privmsg(self.chan,"""        -check: Check if nagios is still running""")
+                serv.privmsg(self.chan,"""        -show-critical: Change the type of errors shown to critical only""")
+                serv.privmsg(self.chan,"""        -show-all: Change the type of errors shown to all""")
             else:
                 serv.privmsg(self.chan,"""Unknown comand. Use "-help" to see all command. """)
 
@@ -69,16 +69,16 @@ class BotModeration(ircbot.SingleServerIRCBot):
         elif "-show-critical"==message:
             serv.privmsg(author,"OK, je show critical.")
         elif "-help"==message:
-            serv.privmsg(author,"""\t\t\t-resend: Resend the last known problems""")
-            serv.privmsg(author,"""\t\t\t-statistics: Returns the number of criticals/warnings/etc""")
-            serv.privmsg(author,"""\t\t\t-reload: Completely forced reload the nagios status""")
-            serv.privmsg(author,"""\t\t\t-check: Check if nagios is still running""")
-            serv.privmsg(author,"""\t\t\t-show-critical: Change the type of errors shown to critical only""")
-            serv.privmsg(author,"""\t\t\t-show-all: Change the type of errors shown to all""")
+            serv.privmsg(author,"""        -resend: Resend the last known problems""")
+            serv.privmsg(author,"""        -statistics: Returns the number of criticals/warnings/etc""")
+            serv.privmsg(author,"""        -reload: Completely forced reload the nagios status""")
+            serv.privmsg(author,"""        -check: Check if nagios is still running""")
+            serv.privmsg(author,"""        -show-critical: Change the type of errors shown to critical only""")
+            serv.privmsg(author,"""        -show-all: Change the type of errors shown to all""")
         else:
             serv.privmsg(author,"""Unknown comand. Use "-help" to see all command. """)
 
 
 if __name__ == "__main__":
-    BotModeration("irc.rezosup.org",6667,"#testRivIRC","Pynagi").start()
+    Pynagi("irc.rivlink.net",6667,"#testRivIRC","pynagi").start()
 
