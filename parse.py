@@ -6,7 +6,9 @@
 
 
 import re
-from datetime import datetime
+from classes import *
+import thread
+import time
 
 def parse_dat_file(file_name):
     '''Read the file and return all data in a list of dictionary'''
@@ -53,9 +55,9 @@ def parse_dat_file(file_name):
                         l_service[iS].plugin=content.group(2)
                     elif content.group(1)=="service_description":
                         l_service[iS].description=content.group(2)
-        return datetime.now(),l_host,l_service
+        return l_host,l_service
 
-def calc_stat(lh,ls):
+def calc_stat(lh,ls,now):
     up=down=unre=pend=ok=warn=crit=0
 
     for e in lh:
@@ -76,62 +78,21 @@ def calc_stat(lh,ls):
         elif e.state==2:
             crit+=1
 
-    return "Critical: "+str(crit)+", warning: "+str(warn)+", ok: "+str(ok)+", up: "+str(up)+", down: "+str(down)+", unreachable: "+str(unre)+", pending: "+str(pend)
-
-class Service:
-    '''Data structure which contain all service usefull information'''
-
-    def __init__(self):
-        self.hostname=""
-        self.state=0
-        self.description=""
-        self.plugin=""
-
-    def strState(self):
-
-        if self.state==0:
-            return "Ok"
-        elif self.state==1:
-            return "Warning"
-        elif self.state==2:
-            return "Critical"
-
-    def status(self,now):
-        return str(now.year)+"/"+str(now.month)+"/"+str(now.day)+"  "+str(now.hour)+":"+str(now.minute)+" "+self.strState()+" "+str(self.hostname)+" "+str(self.description)+" "+str(self.plugin)
+    return now.strftime("[%Y/%b/%d %H:%M:%S]")+" Critical: "+str(crit)+", warning: "+str(warn)+", ok: "+str(ok)+", up: "+str(up)+", down: "+str(down)+", unreachable: "+str(unre)+", pending: "+str(pend)
 
 
-class Host:
-    '''Data structure which contain all host usefull information'''
 
-    def __init__(self):
-        self.hostname=""
-        self.state=0
-        self.plugin=""
-
-    def strState(self):
-
-        if self.state==0:
-            return "Up"
-        elif self.state==1:
-            return "Down"
-        elif self.state==2:
-            return "Unreachable"
-        elif self.state==3:
-            return "Pending"
-
-    def status(self,now):
-        return str(now.year)+"/"+str(now.month)+"/"+str(now.day)+"  "+str(now.hour)+":"+str(now.minute)+" "+self.strState()+" "+str(self.hostname)+" "+str(self.plugin)
 
 if __name__ == "__main__":
-    now,l1,l2=parse_dat_file("resource/status_icinga.dat")
+    l1,l2=parse_dat_file("resource/status_icinga.dat")
 
     print("Host list: ")
     for e in l1:
-        print(e.status(now))
+        print(e.status(datetime.now()))
 
     print("\nService list: ")
     for e in l2:
-        print(e.status(now))
+        print(e.status(datetime.now()))
 
     print("\n\n"+calc_stat(l1,l2))
 
