@@ -69,7 +69,7 @@ hoststatus {
 	check_execution_time=0.019
 	check_latency=0.054
 	check_type=0
-	current_state=0
+	current_state=1
 	last_hard_state=0
 	last_event_id=0
 	current_event_id=0
@@ -181,7 +181,7 @@ hoststatus {
 	check_execution_time=0.020
 	check_latency=0.121
 	check_type=0
-	current_state=0
+	current_state=2
 	last_hard_state=0
 	last_event_id=587
 	current_event_id=595
@@ -237,7 +237,7 @@ hoststatus {
 	check_execution_time=0.015
 	check_latency=0.032
 	check_type=0
-	current_state=0
+	current_state=3
 	last_hard_state=0
 	last_event_id=0
 	current_event_id=0
@@ -349,7 +349,7 @@ hoststatus {
 	check_execution_time=0.018
 	check_latency=0.193
 	check_type=0
-	current_state=0
+	current_state=1
 	last_hard_state=0
 	last_event_id=0
 	current_event_id=0
@@ -5700,7 +5700,7 @@ servicestatus {
 	check_execution_time=0.096
 	check_latency=0.024
 	check_type=0
-	current_state=0
+	current_state=2
 	last_hard_state=0
 	last_event_id=0
 	current_event_id=0
@@ -5758,7 +5758,7 @@ servicestatus {
 	check_execution_time=0.046
 	check_latency=0.061
 	check_type=0
-	current_state=0
+	current_state=2
 	last_hard_state=0
 	last_event_id=485
 	current_event_id=486

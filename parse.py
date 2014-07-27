@@ -80,7 +80,11 @@ def calc_stat(lh,ls,now):
 
     return now.strftime("[%Y/%b/%d %H:%M:%S]")+" Critical: "+str(crit)+", warning: "+str(warn)+", ok: "+str(ok)+", up: "+str(up)+", down: "+str(down)+", unreachable: "+str(unre)+", pending: "+str(pend)
 
+def should_i_show(e,shown):
 
+    if e.state >= shown:
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
