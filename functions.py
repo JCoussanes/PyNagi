@@ -10,7 +10,7 @@ from classes import *
 import thread
 import time
 
-def parse_dat_file(file_name):
+def parse_dat_file(file_path):
     '''Read the file and return all data in a list of dictionary'''
 
     re_section=re.compile("(\S+)\s*{")
@@ -21,7 +21,7 @@ def parse_dat_file(file_name):
     iS=-1
     H=False
 
-    with open(file_name,"r") as dat_file:
+    with open(file_path,"r") as dat_file:
         for line in dat_file:
             line=line.strip()
 
@@ -56,6 +56,30 @@ def parse_dat_file(file_name):
                     elif content.group(1)=="service_description":
                         l_service[iS].description=content.group(2)
         return l_host,l_service
+
+def parse_conf_file(file_path):
+    ''' Read the param.comf file and extract every parameters in a dictionary '''
+    re_conf=re.compile("(\S+)\s*=\s*(\S+)")
+    l_param={}
+
+    with open(file_path,"r") as conf_file:
+        for line in conf_file:
+            line=line.strip()
+
+            l_tmp=line.split("--",1)
+
+            conf=re_conf.match(l_tmp[0])
+            if conf:
+                if conf.group(1) in ["port","global_check_interval","icinga_check_annoucement","to_show"]:
+                    l_param[conf.group(1)]=int(conf.group(2))
+                elif conf.group(1)=="global_announcement" and conf.group(2)==0:
+                    l_param[conf.group(1)]=False
+                elif conf.group(1)=="global_announcement" and conf.group(2)==1:
+                    l_param[conf.group(1)]=True
+                else:
+                    l_param[conf.group(1)]=conf.group(2)
+    return l_param
+
 
 def calc_stat(lh,ls,now):
     up=down=unre=pend=ok=warn=crit=0

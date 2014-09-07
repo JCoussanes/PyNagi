@@ -4,7 +4,7 @@
 import irclib
 import ircbot
 import re
-from parse import *
+from functions import *
 import thread
 import time
 import signal
@@ -12,7 +12,7 @@ import os
 
 class Pynagi(ircbot.SingleServerIRCBot):
 
-    def __init__(self,server,port,channel,nickname,dat_file,global_check_interval,global_announcement):
+    def __init__(self,server,port,channel,nickname,dat_file,global_check_interval,icinga_check_interval,to_show,global_announcement):
         """Constructor of PyNagi."""
 
         ircbot.SingleServerIRCBot.__init__(self, [(server, port)],nickname, "Icinga checker bot",0)
@@ -24,11 +24,12 @@ class Pynagi(ircbot.SingleServerIRCBot):
         self.file_name = dat_file #The path of the icinga dat file
         self.global_check_interval = global_check_interval #The interval between two check
         self.global_announcement = global_announcement #Does PyNagi should check status automaticly? (boolean)
+        self.icinga_check_interval=icinga_check_interval #The interval icinga take to update the dat file
+        self.toShow=to_show #The state of what should be shown (1 : all problems ; 2 : critical problems)
+
         self.lh=[] #The list of hosts
         self.ls=[] #The list of services
-        self.icinga_check_interval=5 #The interval icinga take to update the dat file
         self.prev_stats="" #Storage of the previous status
-        self.toShow=1 #The state of what should be shown (1 : all problems ; 2 : critical problems)
         self.re_to_me=re.compile(nickname+":\s*(-{1,2}\S+[\s?\S+]?)$") #The regular expression to catch PyNagi highlight
         self.run=True #True if the bot is running
         self.global_run=False #True while the global annoucement thread is running
@@ -117,14 +118,14 @@ class Pynagi(ircbot.SingleServerIRCBot):
                 #This part has the same role as time.sleep(self.global_check_interval) but it allow the program to be quit properly
                 #without waiting the end of the sleeping time. And of course if the program is quit in the middle of a loop nothing is sent to IRC.
                 i=0
-                while i<self.global_check_interval:
+                while i<(self.global_check_interval*60):
                     time.sleep(1)
                     if self.run==True and self.global_run==True:
                         i=i+1
                         print(i)
                     else:
                         break;
-                if i==self.global_check_interval:
+                if i==(self.global_check_interval*60):
                     self.lh,self.ls = parse_dat_file(self.file_name)
                     self.prev_stats=calc_stat(self.lh,self.ls,datetime.now())
                     self.check_nagios_status(serv,chan)
@@ -173,5 +174,6 @@ class Pynagi(ircbot.SingleServerIRCBot):
 
 
 if __name__ == "__main__":
-    Pynagi("irc.rivlink.net",6667,"#testRivIRC","pynagi","resource/status_icinga.dat",30,True).start()
+    param=parse_conf_file("external_files/pynagi.conf")
+    Pynagi(param["server"],param["port"],param["channel"],param["nickname"],param["dat_file"],param["global_check_interval"],param["icinga_check_interval"],param["to_show"],param["global_announcement"]).start()
 
