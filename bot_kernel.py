@@ -174,6 +174,6 @@ class Pynagi(ircbot.SingleServerIRCBot):
 
 
 if __name__ == "__main__":
-    param=parse_conf_file("external_files/pynagi.conf")
+    param=parse_conf_file(".pynagi.conf")
     Pynagi(param["server"],param["port"],param["channel"],param["nickname"],param["dat_file"],param["global_check_interval"],param["icinga_check_interval"],param["to_show"],param["global_announcement"]).start()
 
