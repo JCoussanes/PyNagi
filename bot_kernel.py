@@ -5,7 +5,8 @@ import irclib
 import ircbot
 import re
 from functions import *
-import thread
+from classes import *
+from threading import Lock, Timer
 import time
 import signal
 import os
@@ -24,26 +25,26 @@ class Pynagi(ircbot.SingleServerIRCBot):
         self.file_name = dat_file #The path of the icinga dat file
         self.global_check_interval = global_check_interval #The interval between two check
         self.global_announcement = global_announcement #Does PyNagi should check status automaticly? (boolean)
-        self.icinga_check_interval=icinga_check_interval #The interval icinga take to update the dat file
+        self.icinga_check_interval=int(icinga_check_interval) #The interval icinga take to update the dat file
         self.toShow=to_show #The state of what should be shown (1 : all problems ; 2 : critical problems)
 
-        self.lh=[] #The list of hosts
-        self.ls=[] #The list of services
+        self.domanager = DatObjectManager()
         self.prev_stats="" #Storage of the previous status
-        self.re_to_me=re.compile(nickname+":\s*(-{1,2}\S+[\s?\S+]?)$") #The regular expression to catch PyNagi highlight
+        self.re_to_me=re.compile("(?:^|\s+)"+nickname+":\s*(.*)$") #The regular expression to catch PyNagi highlight
         self.run=True #True if the bot is running
-        self.global_run=False #True while the global annoucement thread is running
+        self.timer = None #Thread.Timer object for loop announcement
+        self.global_run_lock=Lock() #True while the global annoucement thread is running
 
-        signal.signal(signal.SIGINT,self.handler) #Way to be sure to close all thread bfore quitting
+        signal.signal(signal.SIGINT,self.handler) #Way to be sure to close all thread before quitting
 
     def on_welcome(self, serv, ev):
         """Method called when PyNagi is connected to a server."""
         serv.join(self.chan)
-        thread.start_new_thread(self.global_check,(serv, self.chan))
-        self.global_run=True
+        self.timer = Timer(1.0, self.global_check, (serv, self.chan))
+        self.timer.start()
 
     def on_pubmsg(self, serv, ev):
-        """Method called when a public message is catch by PyNagi on the chan. It check if someone ask something to PyNagi"""
+        """Method called when a public message is caught by PyNagi on the chan. It check if someone ask something to PyNagi"""
         auteur = irclib.nm_to_n(ev.source())
         message = ev.arguments()[0]
 
@@ -60,87 +61,63 @@ class Pynagi(ircbot.SingleServerIRCBot):
 
     def answers(self, author, message, serv):
         """Method called to set the output according with the user input"""
+        message = message.lower()
+        if "resend"==message:
+            self.check_nagios_status(serv,author,self.domanager.getIssues())
 
-        if "--resend"==message or "-r"==message:
-            self.check_nagios_status(serv,author)
-
-        elif "--stats"==message or "-s"==message:
+        elif "stats"==message:
             serv.privmsg(author,self.prev_stats)
 
-        elif "--reload"==message or "-R"==message:
-            self.lh,self.ls = parse_dat_file(self.file_name)
-            self.prev_stats=calc_stat(self.lh,self.ls,datetime.now())
-            serv.privmsg(author,"PyNagi status are reloaded.")
-
-        elif "--check"==message or "-c"==message:
+        elif "check"==message:
             self.is_icinga_still_alive(serv,author)
 
-        elif "--show all"==message or "-sa"==message:
+        elif "set show all"==message:
             self.toShow=1
-            serv.privmsg(self.chan,"From now PyNagi will show all.")
+            serv.privmsg(self.chan,"Messages mode set to ALL.")
 
-        elif "--show critical"==message or "-sc"==message:
+        elif "set show critical"==message:
             self.toShow=2
-            serv.privmsg(author,"From now PyNagi will show critical only.")
+            serv.privmsg(author,"Messages mode set to CRITICAL.")
 
-        elif "--global on"==message or "-go"==message:
-            self.global_run=True
-            serv.privmsg(author,"Global annoucement is now enable.")
+        elif "set global on"==message:
+            serv.privmsg(author,"Global announcement enabled.")
 
-        elif "--global off"==message or "-gf"==message:
-            self.global_run=False
-            serv.privmsg(author,"Global annoucement is now disable.")
+        elif "set global off"==message:
+            serv.privmsg(author,"Global announcement disabled.")
 
-        elif "--quit"==message or "-q"==message:
+        elif "quit"==message:
             self.quit()
 
-        elif "--help"==message or "-h"==message:
-            serv.privmsg(author,"""        --help [-h] : show the list of PyNagi commands""")
-            serv.privmsg(author,"""        --resend [-r] : Resend the last known problems""")
-            serv.privmsg(author,"""        --stats [-s] : Returns the number of criticals/warnings/etc""")
-            serv.privmsg(author,"""        --reload [-R] : Completely forced reload the nagios status""")
-            serv.privmsg(author,"""        --check [-c] : Check if nagios is still running""")
-            serv.privmsg(author,"""        --show critical/all [-sc\-sa] : Change the type of errors shown to critical only/all""")
-            serv.privmsg(author,"""        --global on/off [-go\-gf] : enable/disable global annoucement""")
-            serv.privmsg(author,"""        --quit [-q] : close PyNagi""")
+        elif "help"==message:
+            serv.privmsg(author, "help : show the list of PyNagi commands")
+            serv.privmsg(author, "resend : Resend the last known problems")
+            serv.privmsg(author, "stats : Returns the number of criticals/warnings/etc")
+            serv.privmsg(author, "reload : Force reloading the nagios/icinga status")
+            serv.privmsg(author, "check : Check if nagios/icinga is still running")
+            serv.privmsg(author, "set show critical/all : Change the type of errors shown to critical only/all")
+            serv.privmsg(author, "set global on/off : enable/disable global announcement")
+            serv.privmsg(author, "quit : shutdown the bot")
 
         else:
-            serv.privmsg(author,"""Unknown comand. Use "--help" or "-h" to see all command. """)
+            serv.privmsg(author,"""Unknown command. Use "help" to see all commands.""")
 
     def global_check(self,serv,chan):
-        """ Method which is run as a thread to apply the global annoucement """
-        self.lh,self.ls = parse_dat_file(self.file_name)
-        self.prev_stats=calc_stat(self.lh,self.ls,datetime.now())
-        self.check_nagios_status(serv,chan)
-        serv.privmsg(chan,self.prev_stats)
-        while self.run==True:
-            if self.global_announcement:
-                #This part has the same role as time.sleep(self.global_check_interval) but it allow the program to be quit properly
-                #without waiting the end of the sleeping time. And of course if the program is quit in the middle of a loop nothing is sent to IRC.
-                i=0
-                while i<(self.global_check_interval*60):
-                    time.sleep(1)
-                    if self.run==True and self.global_run==True:
-                        i=i+1
-                        print(i)
-                    else:
-                        break;
-                if i==(self.global_check_interval*60):
-                    self.lh,self.ls = parse_dat_file(self.file_name)
-                    self.prev_stats=calc_stat(self.lh,self.ls,datetime.now())
-                    self.check_nagios_status(serv,chan)
-                    serv.privmsg(chan,self.prev_stats)
-        self.global_run=False
+        """ Method which is run as a thread to apply the global announcement """
+        if self.run and self.global_announcement:
+            with self.global_run_lock:
+                lh,ls = parse_dat_file(self.file_name)
+                changes = self.domanager.updateAllAndGetDiff(lh, ls)
+                self.prev_stats=calc_stat(lh,ls,datetime.now())
+                self.check_nagios_status(serv,chan,changes)
+                self.timer = Timer(self.icinga_check_interval, self.global_check, (serv, chan))
+                self.timer.start()
 
-    def check_nagios_status(self,serv,author):
+    def check_nagios_status(self,serv,author,changes):
         """ Method which is used to show problems on IRC """
 
-        for e in self.lh:
-            if should_i_show(e,self.toShow):
-                serv.privmsg(author,e.status(datetime.now()))
-        for e in self.ls:
-            if should_i_show(e,self.toShow):
-                serv.privmsg(author,e.status(datetime.now()))
+        for change in changes:
+            if should_i_show(change,self.toShow):
+                serv.privmsg(author,change.status())
 
     def handler(self,signum,frame):
         """ Handler used to close all threads with ctrl+C"""
@@ -149,8 +126,7 @@ class Pynagi(ircbot.SingleServerIRCBot):
     def quit(self):
         """ Method called to close the program properly """
         self.run=False
-        while self.global_run==True:
-            time.sleep(1)
+        self.timer.cancel()
         ircbot.SingleServerIRCBot.die(self, 'PyNagi is closed.')
 
     def is_icinga_still_alive(self,serv,author):
@@ -165,8 +141,8 @@ class Pynagi(ircbot.SingleServerIRCBot):
         test = time.strftime("%Y/%m/%d - %H:%M:%S", test)
 
         if lastModification < test:
-            serv.privmsg(author,"Last modification was : "+lastModification)
-            serv.privmsg(author,"It should be at most : "+test)
+            serv.privmsg(author,"Last modification was : %s" % lastModification)
+            serv.privmsg(author,"It should be at most : %s" % test)
             serv.privmsg(author,"Icinga is not alive.")
         else:
             serv.privmsg(author,"Icinga is alive.")
@@ -174,6 +150,6 @@ class Pynagi(ircbot.SingleServerIRCBot):
 
 
 if __name__ == "__main__":
-    param=parse_conf_file(".pynagi.conf")
+    param=parse_conf_file("pynagi.conf")
     Pynagi(param["server"],param["port"],param["channel"],param["nickname"],param["dat_file"],param["global_check_interval"],param["icinga_check_interval"],param["to_show"],param["global_announcement"]).start()
 

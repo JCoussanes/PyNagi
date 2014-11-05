@@ -9,4 +9,4 @@ Language : Python.
 USE 
 ===
 
-Open the file ".pynagi.conf" and change all initial parameters to fit in what you are expecting. 
+Open the file "pynagi.conf" and change all initial parameters to fit in what you are expecting. 

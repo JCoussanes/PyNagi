@@ -14,7 +14,7 @@ def parse_dat_file(file_path):
     '''Read the file and return all data in a list of dictionary'''
 
     re_section=re.compile("(\S+)\s*{")
-    re_content=re.compile("(\S+)\s*=\s*(\S+)")
+    re_content=re.compile("(\S+)\s*=\s*(.+)")
     l_host=[]
     l_service=[]
     iH=-1
@@ -107,8 +107,8 @@ def calc_stat(lh,ls,now):
 def should_i_show(e,shown):
 
     if e.state >= shown:
-        return 1
-    return 0
+        return True
+    return False
 
 
 if __name__ == "__main__":
