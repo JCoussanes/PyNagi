@@ -74,10 +74,10 @@ class Service(DatObject):
     '''Data structure which contain all service usefull information'''
 
     def __init__(self, hostname="", description=""):
-        self.hostname=hostname
-        self.description=description
-        self.state=0
-        self.plugin=""
+        self.hostname = hostname
+        self.description = description
+        self.state = 0
+        self.plugin = ""
 
     def strState(self):
 
@@ -96,9 +96,9 @@ class Host(DatObject):
     '''Data structure which contain all host usefull information'''
 
     def __init__(self, hostname=""):
-        self.hostname=hostname
-        self.state=0
-        self.plugin=""
+        self.hostname = hostname
+        self.state = 0
+        self.plugin = ""
 
     def strState(self):
 

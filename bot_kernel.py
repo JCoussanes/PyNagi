@@ -13,7 +13,7 @@ import os
 
 class Pynagi(ircbot.SingleServerIRCBot):
 
-    def __init__(self,server,port,channel,nickname,dat_file,global_check_interval,icinga_check_interval,to_show,global_announcement):
+    def __init__(self,server,port,channel,nickname,dat_file,icinga_check_interval,to_show):
         """Constructor of PyNagi."""
 
         ircbot.SingleServerIRCBot.__init__(self, [(server, port)],nickname, "Icinga checker bot",0)
@@ -23,17 +23,14 @@ class Pynagi(ircbot.SingleServerIRCBot):
         self.nickname = nickname #The nickname of PyNagi
         self.port = port #The port PyNagi should use
         self.file_name = dat_file #The path of the icinga dat file
-        self.global_check_interval = global_check_interval #The interval between two check
-        self.global_announcement = global_announcement #Does PyNagi should check status automaticly? (boolean)
-        self.icinga_check_interval=int(icinga_check_interval) #The interval icinga take to update the dat file
-        self.toShow=to_show #The state of what should be shown (1 : all problems ; 2 : critical problems)
+        self.icinga_check_interval = icinga_check_interval #The interval icinga take to update the dat file
+        self.to_show = to_show #The state of what should be shown (1 : all problems ; 2 : critical problems)
 
         self.domanager = DatObjectManager()
-        self.prev_stats="" #Storage of the previous status
-        self.re_to_me=re.compile("(?:^|\s+)"+nickname+":\s*(.*)$") #The regular expression to catch PyNagi highlight
-        self.run=True #True if the bot is running
+        self.prev_stats = "" #Storage of the previous status
+        self.re_to_me = re.compile("(?:^|\s+)"+nickname+":\s*(.*)$") #The regular expression to catch PyNagi highlight
         self.timer = None #Thread.Timer object for loop announcement
-        self.global_run_lock=Lock() #True while the global annoucement thread is running
+        self.global_run_lock = Lock() #True while the global annoucement thread is running
 
         signal.signal(signal.SIGINT,self.handler) #Way to be sure to close all thread before quitting
 
@@ -48,9 +45,9 @@ class Pynagi(ircbot.SingleServerIRCBot):
         auteur = irclib.nm_to_n(ev.source())
         message = ev.arguments()[0]
 
-        to_me=self.re_to_me.match(message)
+        to_me = self.re_to_me.match(message)
         if to_me:
-            cmd=to_me.group(1)
+            cmd = to_me.group(1)
             self.answers(self.chan,cmd,serv)
 
     def on_privmsg(self, serv, ev):
@@ -72,11 +69,11 @@ class Pynagi(ircbot.SingleServerIRCBot):
             self.is_icinga_still_alive(serv,author)
 
         elif "set show all"==message:
-            self.toShow=1
+            self.to_show=1
             serv.privmsg(self.chan,"Messages mode set to ALL.")
 
         elif "set show critical"==message:
-            self.toShow=2
+            self.to_show=2
             serv.privmsg(author,"Messages mode set to CRITICAL.")
 
         elif "set global on"==message:
@@ -103,20 +100,19 @@ class Pynagi(ircbot.SingleServerIRCBot):
 
     def global_check(self,serv,chan):
         """ Method which is run as a thread to apply the global announcement """
-        if self.run and self.global_announcement:
-            with self.global_run_lock:
-                lh,ls = parse_dat_file(self.file_name)
-                changes = self.domanager.updateAllAndGetDiff(lh, ls)
-                self.prev_stats=calc_stat(lh,ls,datetime.now())
-                self.check_nagios_status(serv,chan,changes)
-                self.timer = Timer(self.icinga_check_interval, self.global_check, (serv, chan))
-                self.timer.start()
+        with self.global_run_lock:
+            lh,ls = parse_dat_file(self.file_name)
+            changes = self.domanager.updateAllAndGetDiff(lh, ls)
+            self.prev_stats = calc_stat(lh,ls,datetime.now())
+            self.check_nagios_status(serv,chan,changes)
+            self.timer = Timer(self.icinga_check_interval, self.global_check, (serv, chan))
+            self.timer.start()
 
     def check_nagios_status(self,serv,author,changes):
         """ Method which is used to show problems on IRC """
 
         for change in changes:
-            if should_i_show(change,self.toShow):
+            if should_i_show(change,self.to_show):
                 serv.privmsg(author,change.status())
 
     def handler(self,signum,frame):
@@ -125,8 +121,8 @@ class Pynagi(ircbot.SingleServerIRCBot):
 
     def quit(self):
         """ Method called to close the program properly """
-        self.run=False
-        self.timer.cancel()
+        if self.timer is not None:
+            self.timer.cancel()
         ircbot.SingleServerIRCBot.die(self, 'PyNagi is closed.')
 
     def is_icinga_still_alive(self,serv,author):
@@ -150,6 +146,6 @@ class Pynagi(ircbot.SingleServerIRCBot):
 
 
 if __name__ == "__main__":
-    param=parse_conf_file("pynagi.conf")
-    Pynagi(param["server"],param["port"],param["channel"],param["nickname"],param["dat_file"],param["global_check_interval"],param["icinga_check_interval"],param["to_show"],param["global_announcement"]).start()
+    conf = parse_conf_file("pynagi.conf")
+    Pynagi(conf.get("pynagi", "server"), conf.getint("pynagi", "port"), conf.get("pynagi", "channel"), conf.get("pynagi", "nickname"), conf.get("pynagi", "dat_file"), conf.getint("pynagi", "icinga_check_interval"), conf.getint("pynagi", "to_show")).start()
 
