@@ -14,6 +14,8 @@ class DatObjectManager:
         return self.dolist["host"][hostname]
 
     def setHost(self, obj):
+        oldobj = self.getHost(obj.hostname)
+        obj.oldstate = oldobj.state
         self.dolist["host"][obj.hostname] = obj
     
     def getService(self, hostname, description):
@@ -24,8 +26,8 @@ class DatObjectManager:
         return self.dolist["service"][hostname][description]
 
     def setService(self, obj):
-        if obj.hostname not in self.dolist["service"]:
-            self.dolist["service"][obj.hostname] = {}
+        oldobj = self.getService(obj.hostname, obj.description)
+        obj.oldstate = oldobj.state
         self.dolist["service"][obj.hostname][obj.description] = obj
     
     def hostStateChanged(self, obj):
@@ -39,12 +41,12 @@ class DatObjectManager:
     def updateAllAndGetDiff(self, hostlist, servicelist):
         for host in hostlist:
             if self.hostStateChanged(host):
+                self.setHost(host)
                 yield host
-            self.setHost(host)
         for service in servicelist:
             if self.serviceStateChanged(service):
+                self.setService(service)
                 yield service
-            self.setService(service)
 
     def getIssues(self):
         for obj in self.dolist["host"]:
@@ -63,6 +65,14 @@ class DatObject:
             return True
         return False
 
+    def show(self, shown):
+        try:
+            if self.state >= shown or (self.oldstate is not None and self.oldstate > self.state):
+                return True
+        except AttributeError:
+            return False
+        return False        
+
     def status(self):
         raise NotImplementedError
     
@@ -77,6 +87,7 @@ class Service(DatObject):
         self.hostname = hostname
         self.description = description
         self.state = 0
+        self.oldstate = 0
         self.plugin = ""
 
     def strState(self):
@@ -98,6 +109,7 @@ class Host(DatObject):
     def __init__(self, hostname=""):
         self.hostname = hostname
         self.state = 0
+        self.oldstate = 0
         self.plugin = ""
 
     def strState(self):

@@ -112,7 +112,7 @@ class Pynagi(ircbot.SingleServerIRCBot):
         """ Method which is used to show problems on IRC """
 
         for change in changes:
-            if should_i_show(change,self.to_show):
+            if change.show(self.to_show):
                 serv.privmsg(author,change.status())
 
     def handler(self,signum,frame):

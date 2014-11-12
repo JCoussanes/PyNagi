@@ -88,12 +88,6 @@ def calc_stat(lh,ls,now):
 
     return now.strftime("[%Y/%b/%d %H:%M:%S]")+" Critical: "+str(crit)+", warning: "+str(warn)+", ok: "+str(ok)+", up: "+str(up)+", down: "+str(down)+", unreachable: "+str(unre)+", pending: "+str(pend)
 
-def should_i_show(e,shown):
-
-    if e.state >= shown:
-        return True
-    return False
-
 
 if __name__ == "__main__":
     l1,l2 = parse_dat_file("resource/status_icinga.dat")
