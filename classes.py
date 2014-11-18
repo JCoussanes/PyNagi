@@ -104,11 +104,11 @@ class Service(DatObject):
 
     def strStateColored(self):
         if self.state==0:
-            return color("OK", BLACK, RED)
+            return color("OK", BLACK, LIME_GREEN)
         elif self.state==1:
             return color("WARNING", BLACK, YELLOW)
         elif self.state==2:
-            return color("CRITICAL", BLACK, LIME_GREEN)
+            return color("CRITICAL", BLACK, RED)
 
     def status(self):
         return "[%s][%s %s][%s] %s" % (datetime.now().strftime("%d/%m/%Y %H:%M"), self.hostname, self.description, self.strStateColored(), self.plugin)
