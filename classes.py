@@ -2,6 +2,7 @@
 #utf8
 
 from datetime import datetime
+from format import *
 
 class DatObjectManager:
 
@@ -78,6 +79,9 @@ class DatObject:
     
     def strState(self):
         raise NotImplementedError
+
+    def strStateColored(self):
+        raise NotImplementedError
         
 
 class Service(DatObject):
@@ -91,7 +95,6 @@ class Service(DatObject):
         self.plugin = ""
 
     def strState(self):
-
         if self.state==0:
             return "OK"
         elif self.state==1:
@@ -99,8 +102,16 @@ class Service(DatObject):
         elif self.state==2:
             return "CRITICAL"
 
+    def strStateColored(self):
+        if self.state==0:
+            return color("OK", BLACK, RED)
+        elif self.state==1:
+            return color("WARNING", BLACK, YELLOW)
+        elif self.state==2:
+            return color("CRITICAL", BLACK, LIME_GREEN)
+
     def status(self):
-        return "[%s][%s %s][%s] %s" % (datetime.now().strftime("%d/%m/%Y %H:%M"), self.hostname, self.description, self.strState(), self.plugin)
+        return "[%s][%s %s][%s] %s" % (datetime.now().strftime("%d/%m/%Y %H:%M"), self.hostname, self.description, self.strStateColored(), self.plugin)
 
 
 class Host(DatObject):
@@ -123,7 +134,17 @@ class Host(DatObject):
         elif self.state==3:
             return "PENDING"
     
+    def strStateColored(self):
+        if self.state==0:
+            return color("UP", BLACK, LIME_GREEN)
+        elif self.state==1:
+            return color("DOWN", BLACK, RED)
+        elif self.state==2:
+            return color("UNREACHABLE", BLACK, RED)
+        elif self.state==3:
+            return color("PENDING", BLACK, LIGHT_GRAY)
+
     def status(self):
-        return "[%s][%s][%s] %s" % (datetime.now().strftime("%d/%m/%Y %H:%M"), self.hostname, self.strState(), self.plugin)
+        return "[%s][%s][%s] %s" % (datetime.now().strftime("%d/%m/%Y %H:%M"), self.hostname, self.strStateColored(), self.plugin)
 
 
